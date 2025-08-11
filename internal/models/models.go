@@ -51,9 +51,10 @@ type Member struct {
 
 type BlacklistedToken struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	Token     string    `json:"token" gorm:"not null;index;type:varchar(1000)"` // JWT token yang di-blacklist
-	UserID    uint      `json:"user_id" gorm:"not null"`                        // ID user yang logout
-	ExpiresAt time.Time `json:"expires_at" gorm:"not null;index"`               // Kapan token expire
+	Token     string    `json:"token" gorm:"not null;type:text"`                   // JWT token yang di-blacklist (full token)
+	TokenHash string    `json:"token_hash" gorm:"not null;index;type:varchar(64)"` // SHA256 hash of token for indexing
+	UserID    uint      `json:"user_id" gorm:"not null"`                           // ID user yang logout
+	ExpiresAt time.Time `json:"expires_at" gorm:"not null;index"`                  // Kapan token expire
 	CreatedAt time.Time `json:"created_at"`
 }
 

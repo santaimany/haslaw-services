@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"fmt"
+	"haslaw-be-services/internal/models"
 	"haslaw-be-services/internal/service"
 	"haslaw-be-services/internal/utils"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -86,8 +90,46 @@ func (h *NewsHandler) GetBySlug(c *gin.Context) {
 // Create creates new news
 func (h *NewsHandler) Create(c *gin.Context) {
 	var req service.CreateNewsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequestResponse(c, "Invalid request body", err.Error())
+	
+	// Check content type - support both JSON and form-data
+	contentType := c.GetHeader("Content-Type")
+	
+	if strings.Contains(contentType, "application/json") {
+		// Handle JSON request
+		if err := c.ShouldBindJSON(&req); err != nil {
+			utils.BadRequestResponse(c, "Invalid request body", err.Error())
+			return
+		}
+	} else if strings.Contains(contentType, "multipart/form-data") {
+		// Handle form-data request
+		req.NewsTitle = c.PostForm("news_title")
+		req.Category = c.PostForm("category")
+		req.Status = models.NewsStatus(c.PostForm("status"))
+		req.Content = c.PostForm("content")
+		
+		// Handle file upload
+		file, err := c.FormFile("image")
+		if err != nil {
+			utils.BadRequestResponse(c, "Image file is required", err.Error())
+			return
+		}
+		
+		// Validate required fields
+		if req.NewsTitle == "" || req.Category == "" || req.Status == "" || req.Content == "" {
+			utils.BadRequestResponse(c, "All fields are required", "news_title, category, status, and content are required")
+			return
+		}
+		
+		// Save uploaded file
+		uploadPath := fmt.Sprintf("uploads/news/%d_%s", time.Now().Unix(), file.Filename)
+		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+			utils.InternalServerErrorResponse(c, "Failed to save image", err.Error())
+			return
+		}
+		
+		req.Image = uploadPath
+	} else {
+		utils.BadRequestResponse(c, "Unsupported content type", "Use application/json or multipart/form-data")
 		return
 	}
 

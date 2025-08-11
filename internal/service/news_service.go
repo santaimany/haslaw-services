@@ -25,16 +25,16 @@ type CreateNewsRequest struct {
 	NewsTitle string            `json:"news_title" binding:"required"`
 	Category  string            `json:"category" binding:"required"`
 	Status    models.NewsStatus `json:"status" binding:"required"`
-	Content   string            `json:"content"`
-	Image     string            `json:"image"`
+	Content   string            `json:"content" binding:"required"`
+	Image     string            `json:"image" binding:"required"`
 }
 
 type UpdateNewsRequest struct {
-	NewsTitle string            `json:"news_title"`
-	Category  string            `json:"category"`
-	Status    models.NewsStatus `json:"status"`
-	Content   string            `json:"content"`
-	Image     string            `json:"image"`
+	NewsTitle string            `json:"news_title" binding:"required"`
+	Category  string            `json:"category" binding:"required"`
+	Status    models.NewsStatus `json:"status" binding:"required"`
+	Content   string            `json:"content" binding:"required"`
+	Image     string            `json:"image" binding:"required"`
 }
 
 type newsService struct {

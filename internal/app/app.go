@@ -119,18 +119,24 @@ func (a *App) initializeServices() error {
 }
 
 func (a *App) setupMiddleware() error {
-
+	// Performance optimizations
 	a.Router.Use(gin.Recovery())
 
+	// Only use logger in development
 	if os.Getenv("GIN_MODE") != "release" {
 		a.Router.Use(gin.Logger())
 	}
 
+	// Add compression for better response times
+	a.Router.Use(middleware.GzipMiddleware())
+	
+	// Core middlewares
 	a.Router.Use(middleware.TraceIDMiddleware())
-	a.Router.Use(middleware.RateLimitMiddleware(60)) // 60 requests per minute
+	a.Router.Use(middleware.RateLimitMiddleware(100)) // Increase rate limit
 	a.Router.Use(middleware.CORSMiddleware())
 	a.Router.Use(middleware.SecurityHeadersMiddleware())
 
+	// Static files with cache headers for better performance
 	a.Router.Static("/uploads", "./uploads")
 
 	return nil

@@ -75,7 +75,13 @@ func NewDatabase() (*gorm.DB, error) {
 	)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn), // Reduce logging to Warning only
+		NowFunc: func() time.Time {
+			return time.Now().Local()
+		},
+		PrepareStmt:                              true,  // Cache prepared statements
+		DisableForeignKeyConstraintWhenMigrating: false,
+		SkipDefaultTransaction:                   true, // Skip transactions for better performance
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -86,9 +92,11 @@ func NewDatabase() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(config.Database.MaxConns)
-	sqlDB.SetMaxIdleConns(config.Database.MaxIdle)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Optimize connection pool for better performance
+	sqlDB.SetMaxOpenConns(config.Database.MaxConns * 2)      // Increase max connections
+	sqlDB.SetMaxIdleConns(config.Database.MaxIdle * 2)       // Increase idle connections
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)               // Reduce connection lifetime
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)                // Set idle timeout
 
 	fmt.Println("Database connected successfully!")
 	return db, nil

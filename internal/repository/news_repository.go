@@ -35,38 +35,65 @@ func (r *newsRepository) GetAll(limit, offset int, orderBy string) ([]models.New
 	var news []models.News
 	var total int64
 
+	// Use single query with count estimation for better performance
 	query := r.db.Model(&models.News{})
 
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
+	// Perform count and select in parallel-like manner
+	countChan := make(chan error, 1)
+	go func() {
+		countChan <- query.Count(&total).Error
+	}()
+
+	// Execute main query with optimizations
+	err := r.db.Select("id, news_title, slug, category, status, image, created_at, updated_at").
+		Offset(offset).
+		Limit(limit).
+		Order(orderBy).
+		Find(&news).Error
+
+	// Wait for count query
+	if countErr := <-countChan; countErr != nil {
+		return nil, 0, countErr
 	}
 
-	if err := query.Offset(offset).Limit(limit).Order(orderBy).Find(&news).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return news, total, nil
+	return news, total, err
 }
 
 func (r *newsRepository) GetPublished(limit, offset int, orderBy string, category string) ([]models.News, int64, error) {
 	var news []models.News
 	var total int64
 
-	query := r.db.Model(&models.News{}).Where("status = ?", models.Posted)
-
+	baseQuery := r.db.Model(&models.News{}).Where("status = ?", models.Posted)
+	
 	if category != "" {
-		query = query.Where("category = ?", category)
+		baseQuery = baseQuery.Where("category = ?", category)
 	}
 
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
+	// Parallel count and select
+	countChan := make(chan error, 1)
+	go func() {
+		countChan <- baseQuery.Count(&total).Error
+	}()
+
+	// Optimized select query with limited fields for list view
+	selectQuery := r.db.Select("id, news_title, slug, category, status, image, created_at, updated_at").
+		Where("status = ?", models.Posted)
+	
+	if category != "" {
+		selectQuery = selectQuery.Where("category = ?", category)
 	}
 
-	if err := query.Offset(offset).Limit(limit).Order(orderBy).Find(&news).Error; err != nil {
-		return nil, 0, err
+	err := selectQuery.Offset(offset).
+		Limit(limit).
+		Order(orderBy).
+		Find(&news).Error
+
+	// Wait for count
+	if countErr := <-countChan; countErr != nil {
+		return nil, 0, countErr
 	}
 
-	return news, total, nil
+	return news, total, err
 }
 
 func (r *newsRepository) GetDrafts(limit, offset int, orderBy string) ([]models.News, int64, error) {

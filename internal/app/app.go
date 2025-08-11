@@ -10,6 +10,7 @@ import (
 	"haslaw-be-services/internal/models"
 	"haslaw-be-services/internal/repository"
 	"haslaw-be-services/internal/service"
+	"haslaw-be-services/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -35,6 +36,10 @@ func New() (*App, error) {
 
 	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("database migration failed: %w", err)
+	}
+
+	if err := utils.InitUploadDirectories(); err != nil {
+		return nil, fmt.Errorf("upload directories initialization failed: %w", err)
 	}
 
 	if os.Getenv("GIN_MODE") == "release" {
@@ -83,8 +88,12 @@ func (a *App) initializeServices() error {
 
 	userRepo := repository.NewUserRepository(a.DB)
 	blacklistRepo := repository.NewBlacklistRepository(a.DB)
+	newsRepo := repository.NewNewsRepository(a.DB)
+	memberRepo := repository.NewMemberRepository(a.DB)
 
 	authService := service.NewAuthService(userRepo, blacklistRepo)
+	newsService := service.NewNewsService(newsRepo)
+	memberService := service.NewMemberService(memberRepo)
 
 	if err := authService.CreateDefaultSuperAdmin(); err != nil {
 		return fmt.Errorf("failed to create default super admin: %w", err)
@@ -92,11 +101,15 @@ func (a *App) initializeServices() error {
 
 	authHandler := handlers.NewAuthHandler(authService)
 	adminHandler := handlers.NewAdminHandler(authService)
+	newsHandler := handlers.NewNewsHandler(newsService)
+	memberHandler := handlers.NewMemberHandler(memberService)
 	healthHandler := handlers.NewHealthHandler()
 
 	a.Router.Use(func(c *gin.Context) {
 		c.Set("authHandler", authHandler)
 		c.Set("adminHandler", adminHandler)
+		c.Set("newsHandler", newsHandler)
+		c.Set("memberHandler", memberHandler)
 		c.Set("healthHandler", healthHandler)
 		c.Set("authService", authService)
 		c.Next()
@@ -113,6 +126,8 @@ func (a *App) setupMiddleware() error {
 		a.Router.Use(gin.Logger())
 	}
 
+	a.Router.Use(middleware.TraceIDMiddleware())
+	a.Router.Use(middleware.RateLimitMiddleware(60)) // 60 requests per minute
 	a.Router.Use(middleware.CORSMiddleware())
 	a.Router.Use(middleware.SecurityHeadersMiddleware())
 
@@ -148,6 +163,18 @@ func (a *App) getAdminHandler() *handlers.AdminHandler {
 	blacklistRepo := repository.NewBlacklistRepository(a.DB)
 	authService := service.NewAuthService(userRepo, blacklistRepo)
 	return handlers.NewAdminHandler(authService)
+}
+
+func (a *App) getNewsHandler() *handlers.NewsHandler {
+	newsRepo := repository.NewNewsRepository(a.DB)
+	newsService := service.NewNewsService(newsRepo)
+	return handlers.NewNewsHandler(newsService)
+}
+
+func (a *App) getMemberHandler() *handlers.MemberHandler {
+	memberRepo := repository.NewMemberRepository(a.DB)
+	memberService := service.NewMemberService(memberRepo)
+	return handlers.NewMemberHandler(memberService)
 }
 
 func (a *App) getHealthHandler() *handlers.HealthHandler {

@@ -14,6 +14,7 @@ func (a *App) setupPublicRoutes(v1 *gin.RouterGroup) {
 	{
 		auth.POST("/login", authHandler.Login)
 	}
+
 }
 
 func (a *App) setupAuthRoutes(v1 *gin.RouterGroup) {
@@ -32,12 +33,27 @@ func (a *App) setupAuthRoutes(v1 *gin.RouterGroup) {
 
 func (a *App) setupAdminRoutes(v1 *gin.RouterGroup) {
 	authService := a.getAuthService()
+	newsHandler := a.getNewsHandler()
+	memberHandler := a.getMemberHandler()
 
 	admin := v1.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(authService))
 	admin.Use(middleware.RequireRole(models.Admin))
 	{
 
+		news := admin.Group("/news")
+		{
+			news.POST("", newsHandler.Create)
+			news.PUT("/:id", newsHandler.Update)
+			news.DELETE("/:id", newsHandler.Delete)
+		}
+
+		members := admin.Group("/members")
+		{
+			members.POST("", memberHandler.Create)
+			members.PUT("/:id", memberHandler.Update)
+			members.DELETE("/:id", memberHandler.Delete)
+		}
 	}
 }
 

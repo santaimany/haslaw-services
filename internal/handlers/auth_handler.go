@@ -36,18 +36,28 @@ type LoginResponse struct {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
+	// Initialize trace logger
+	logger := utils.NewTraceLogger(c)
+	logger.Info("Login attempt started")
+
 	var req LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.WithError(err, "Invalid login request payload")
 		utils.BadRequestResponse(c, "Data request tidak valid", err.Error())
 		return
 	}
 
+	logger.Infof("Login attempt for username: %s", req.Username)
+
 	user, accessToken, refreshToken, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
+		logger.WithError(err, "Login authentication failed")
 		utils.UnauthorizedResponse(c, "Login gagal")
 		return
 	}
+
+	logger.LogUserAction(user.Username, "LOGIN", "auth")
 
 	c.SetCookie(
 		"refresh_token",

@@ -56,10 +56,10 @@ jobs:
       run: |
         go test -v ./...
 
-    - name: Run security scan
-      uses: securecodewarrior/github-action-add-sarif@v1
-      with:
-        sarif-file: 'gosec-results.sarif'
+    - name: Run security scan with gosec
+      run: |
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec ./... || true
       continue-on-error: true
 
   # Build and push Docker image

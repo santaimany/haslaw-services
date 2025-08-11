@@ -39,8 +39,11 @@ GIN_MODE=release
 
 ### 3. Deploy Application
 ```bash
-# Build and start all services
+# Build and start all services (without nginx)
 docker-compose up -d --build
+
+# OR if you want to use nginx reverse proxy (optional)
+# First make sure nginx.conf exists, then add nginx service back to docker-compose.yml
 
 # Check if services are running
 docker-compose ps
@@ -51,12 +54,14 @@ docker-compose logs -f app
 
 ### 4. Health Check
 ```bash
-# Test if application is running
+# Test if application is running (direct access)
 curl http://localhost:8080/health
 
 # Test API endpoint
 curl http://localhost:8080/api/v1/auth/login
 ```
+
+**Note:** Current setup runs the app directly on port 8080 without nginx. If you need nginx reverse proxy, uncomment the nginx service in docker-compose.yml.
 
 ## 🔄 Update Deployment
 

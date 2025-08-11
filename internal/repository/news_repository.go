@@ -44,7 +44,7 @@ func (r *newsRepository) GetAll(limit, offset int, orderBy string) ([]models.New
 		countChan <- query.Count(&total).Error
 	}()
 
-	// Execute main query with optimizations - include content field
+	// Execute main query with optimizations
 	err := r.db.Select("id, news_title, slug, category, status, content, image, created_at, updated_at").
 		Offset(offset).
 		Limit(limit).
@@ -75,7 +75,7 @@ func (r *newsRepository) GetPublished(limit, offset int, orderBy string, categor
 		countChan <- baseQuery.Count(&total).Error
 	}()
 
-	// Optimized select query with limited fields for list view - include content
+	// Optimized select query with limited fields for list view
 	selectQuery := r.db.Select("id, news_title, slug, category, status, content, image, created_at, updated_at").
 		Where("status = ?", models.Posted)
 

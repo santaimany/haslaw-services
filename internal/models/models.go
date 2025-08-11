@@ -42,7 +42,7 @@ type Member struct {
 	DetailImage   string         `json:"detail_image"`                          // Foto detail
 	Biography     string         `json:"biography" gorm:"type:text"`            // Biografi
 	PracticeFocus []string       `json:"practice_focus" gorm:"serializer:json"` // Bidang keahlian
-	Education     string         `json:"education"`                             // Pendidikan
+	Education     []string       `json:"education" gorm:"serializer:json"`      // Pendidikan
 	Language      []string       `json:"language" gorm:"serializer:json"`       // Bahasa yang dikuasai
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`

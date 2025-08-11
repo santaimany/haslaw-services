@@ -151,8 +151,35 @@ func (h *NewsHandler) Update(c *gin.Context) {
 	}
 
 	var req service.UpdateNewsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequestResponse(c, "Invalid request body", err.Error())
+
+	// Check content type - support both JSON and form-data
+	contentType := c.GetHeader("Content-Type")
+
+	if strings.Contains(contentType, "application/json") {
+		// Handle JSON request
+		if err := c.ShouldBindJSON(&req); err != nil {
+			utils.BadRequestResponse(c, "Invalid request body", err.Error())
+			return
+		}
+	} else if strings.Contains(contentType, "multipart/form-data") {
+		// Handle form-data request
+		req.NewsTitle = c.PostForm("news_title")
+		req.Category = c.PostForm("category")
+		req.Status = models.NewsStatus(c.PostForm("status"))
+		req.Content = c.PostForm("content")
+
+		// Handle file upload (optional for update)
+		if file, err := c.FormFile("image"); err == nil {
+			// Save uploaded file
+			uploadPath := fmt.Sprintf("uploads/news/%d_%s", time.Now().Unix(), file.Filename)
+			if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+				utils.InternalServerErrorResponse(c, "Failed to save image", err.Error())
+				return
+			}
+			req.Image = uploadPath
+		}
+	} else {
+		utils.BadRequestResponse(c, "Unsupported content type", "Use application/json or multipart/form-data")
 		return
 	}
 

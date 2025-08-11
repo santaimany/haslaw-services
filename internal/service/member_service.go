@@ -24,7 +24,7 @@ type CreateMemberRequest struct {
 	DetailImage   string   `json:"detail_image"`
 	Biography     string   `json:"biography"`
 	PracticeFocus []string `json:"practice_focus"`
-	Education     string   `json:"education"`
+	Education     []string `json:"education"`
 	Language      []string `json:"language"`
 }
 
@@ -39,7 +39,7 @@ type UpdateMemberRequest struct {
 	DetailImage   string   `json:"detail_image"`
 	Biography     string   `json:"biography"`
 	PracticeFocus []string `json:"practice_focus"`
-	Education     string   `json:"education"`
+	Education     []string `json:"education"`
 	Language      []string `json:"language"`
 }
 
@@ -120,7 +120,7 @@ func (s *memberService) Update(id uint, memberData *UpdateMemberRequest) (*model
 	if len(memberData.PracticeFocus) > 0 {
 		member.PracticeFocus = memberData.PracticeFocus
 	}
-	if memberData.Education != "" {
+	if len(memberData.Education) > 0 {
 		member.Education = memberData.Education
 	}
 	if len(memberData.Language) > 0 {

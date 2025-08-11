@@ -58,7 +58,7 @@ services:
     networks:
       - haslaw-network
     volumes:
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads  # Use named volume instead of bind mount
     healthcheck:
       test: ["CMD", "sh", "-c", "nc -z localhost 8080 || exit 1"]
       interval: 30s
@@ -68,6 +68,8 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  uploads_data:
     driver: local
 
 networks:

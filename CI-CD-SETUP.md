@@ -80,6 +80,8 @@ DB_PASSWORD=your-production-db-password
 SLACK_WEBHOOK=your-slack-webhook-url
 ```
 
+**Note:** Slack notification is optional. If you don't need it, the workflow will skip the notification step automatically.
+
 #### For staging environment:
 ```
 STAGING_HOST=your-staging-server-ip

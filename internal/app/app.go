@@ -1,0 +1,161 @@
+package app
+
+import (
+	"fmt"
+	"os"
+
+	"haslaw-be-services/internal/config"
+	"haslaw-be-services/internal/handlers"
+	"haslaw-be-services/internal/middleware"
+	"haslaw-be-services/internal/models"
+	"haslaw-be-services/internal/repository"
+	"haslaw-be-services/internal/service"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"gorm.io/gorm"
+)
+
+type App struct {
+	DB     *gorm.DB
+	Router *gin.Engine
+}
+
+func New() (*App, error) {
+
+	if err := godotenv.Load(); err != nil {
+
+		fmt.Println("⚠️  No .env file found, using system environment variables")
+	}
+
+	db, err := config.NewDatabase()
+	if err != nil {
+		return nil, fmt.Errorf("database connection failed: %w", err)
+	}
+
+	if err := runMigrations(db); err != nil {
+		return nil, fmt.Errorf("database migration failed: %w", err)
+	}
+
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	app := &App{
+		DB:     db,
+		Router: gin.New(),
+	}
+
+	if err := app.initializeServices(); err != nil {
+		return nil, fmt.Errorf("service initialization failed: %w", err)
+	}
+
+	if err := app.setupMiddleware(); err != nil {
+		return nil, fmt.Errorf("middleware setup failed: %w", err)
+	}
+
+	if err := app.setupRoutes(); err != nil {
+		return nil, fmt.Errorf("routes setup failed: %w", err)
+	}
+
+	return app, nil
+}
+
+func (a *App) Close() error {
+
+	sqlDB, err := a.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+func runMigrations(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&models.User{},
+		&models.News{},
+		&models.Member{},
+		&models.BlacklistedToken{},
+	)
+}
+
+func (a *App) initializeServices() error {
+
+	userRepo := repository.NewUserRepository(a.DB)
+	blacklistRepo := repository.NewBlacklistRepository(a.DB)
+
+	authService := service.NewAuthService(userRepo, blacklistRepo)
+
+	if err := authService.CreateDefaultSuperAdmin(); err != nil {
+		return fmt.Errorf("failed to create default super admin: %w", err)
+	}
+
+	authHandler := handlers.NewAuthHandler(authService)
+	adminHandler := handlers.NewAdminHandler(authService)
+	healthHandler := handlers.NewHealthHandler()
+
+	a.Router.Use(func(c *gin.Context) {
+		c.Set("authHandler", authHandler)
+		c.Set("adminHandler", adminHandler)
+		c.Set("healthHandler", healthHandler)
+		c.Set("authService", authService)
+		c.Next()
+	})
+
+	return nil
+}
+
+func (a *App) setupMiddleware() error {
+
+	a.Router.Use(gin.Recovery())
+
+	if os.Getenv("GIN_MODE") != "release" {
+		a.Router.Use(gin.Logger())
+	}
+
+	a.Router.Use(middleware.CORSMiddleware())
+	a.Router.Use(middleware.SecurityHeadersMiddleware())
+
+	a.Router.Static("/uploads", "./uploads")
+
+	return nil
+}
+
+func (a *App) setupRoutes() error {
+
+	healthHandler := a.getHealthHandler()
+	a.Router.GET("/health", healthHandler.Check)
+
+	v1 := a.Router.Group("/api/v1")
+
+	a.setupPublicRoutes(v1)
+	a.setupAuthRoutes(v1)
+	a.setupAdminRoutes(v1)
+	a.setupSuperAdminRoutes(v1)
+
+	return nil
+}
+
+func (a *App) getAuthHandler() *handlers.AuthHandler {
+	userRepo := repository.NewUserRepository(a.DB)
+	blacklistRepo := repository.NewBlacklistRepository(a.DB)
+	authService := service.NewAuthService(userRepo, blacklistRepo)
+	return handlers.NewAuthHandler(authService)
+}
+
+func (a *App) getAdminHandler() *handlers.AdminHandler {
+	userRepo := repository.NewUserRepository(a.DB)
+	blacklistRepo := repository.NewBlacklistRepository(a.DB)
+	authService := service.NewAuthService(userRepo, blacklistRepo)
+	return handlers.NewAdminHandler(authService)
+}
+
+func (a *App) getHealthHandler() *handlers.HealthHandler {
+	return handlers.NewHealthHandler()
+}
+
+func (a *App) getAuthService() service.AuthService {
+	userRepo := repository.NewUserRepository(a.DB)
+	blacklistRepo := repository.NewBlacklistRepository(a.DB)
+	return service.NewAuthService(userRepo, blacklistRepo)
+}

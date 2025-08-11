@@ -27,7 +27,6 @@ services:
 
   # Go Application
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-santaimany/haslaw-services}:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

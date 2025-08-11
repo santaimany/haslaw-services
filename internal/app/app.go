@@ -100,7 +100,7 @@ func (a *App) initializeServices() error {
 	}
 
 	authHandler := handlers.NewAuthHandler(authService)
-	adminHandler := handlers.NewAdminHandler(authService)
+	adminHandler := handlers.NewAdminHandler(authService, userRepo)
 	newsHandler := handlers.NewNewsHandler(newsService)
 	memberHandler := handlers.NewMemberHandler(memberService)
 	healthHandler := handlers.NewHealthHandler()
@@ -162,7 +162,7 @@ func (a *App) getAdminHandler() *handlers.AdminHandler {
 	userRepo := repository.NewUserRepository(a.DB)
 	blacklistRepo := repository.NewBlacklistRepository(a.DB)
 	authService := service.NewAuthService(userRepo, blacklistRepo)
-	return handlers.NewAdminHandler(authService)
+	return handlers.NewAdminHandler(authService, userRepo)
 }
 
 func (a *App) getNewsHandler() *handlers.NewsHandler {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"haslaw-be-services/internal/models"
+	"haslaw-be-services/internal/repository"
 	"haslaw-be-services/internal/service"
 	"haslaw-be-services/internal/utils"
 	"net/http"
@@ -12,11 +13,13 @@ import (
 
 type AdminHandler struct {
 	authService service.AuthService
+	userRepo    repository.UserRepository
 }
 
-func NewAdminHandler(authService service.AuthService) *AdminHandler {
+func NewAdminHandler(authService service.AuthService, userRepo repository.UserRepository) *AdminHandler {
 	return &AdminHandler{
 		authService: authService,
+		userRepo:    userRepo,
 	}
 }
 
@@ -98,8 +101,20 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, "Profile retrieved successfully", map[string]interface{}{
-		"message": "Get Profile",
-		"user_id": userID,
-	})
+	// Get user data from database
+	user, err := h.userRepo.GetByID(uint(userID))
+	if err != nil {
+		utils.NotFoundResponse(c, "User not found")
+		return
+	}
+
+	// Return user profile with email
+	response := models.UserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     user.Role,
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Profile retrieved successfully", response)
 }

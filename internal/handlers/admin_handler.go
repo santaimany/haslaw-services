@@ -76,17 +76,11 @@ func (h *AdminHandler) UpdateProfile(c *gin.Context) {
 }
 
 func (h *AdminHandler) GetProfile(c *gin.Context) {
-	// Initialize trace logger
-	logger := utils.NewTraceLogger(c)
-	logger.Info("GetProfile request initiated")
-
 	userIDStr := c.Param("id")
 	if userIDStr == "" {
-		logger.Debug("No user ID in URL param, using token user ID")
 
 		userID, exists := c.Get("user_id")
 		if !exists {
-			logger.Error("User ID not found in token context")
 			utils.UnauthorizedResponse(c, "User ID not found in token")
 			return
 		}
@@ -95,18 +89,14 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 
 	userID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		logger.WithError(err, "Failed to parse user ID from parameter")
 		utils.BadRequestResponse(c, "Invalid user ID", err.Error())
 		return
 	}
-
-	logger.Infof("Attempting to get profile for user ID: %d", userID)
 
 	currentUserID, _ := c.Get("user_id")
 	currentUserRole, _ := c.Get("role")
 
 	if currentUserID.(uint) != uint(userID) && currentUserRole != string(models.SuperAdmin) {
-		logger.Warnf("Access denied: User %d attempted to access profile of user %d", currentUserID.(uint), userID)
 		utils.ForbiddenResponse(c, "You can only access your own profile")
 		return
 	}
@@ -114,12 +104,9 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 	// Get user data from database
 	user, err := h.userRepo.GetByID(uint(userID))
 	if err != nil {
-		logger.WithError(err, "Failed to retrieve user from database")
 		utils.NotFoundResponse(c, "User not found")
 		return
 	}
-
-	logger.LogUserAction(user.Username, "GET_PROFILE", "user_profile")
 
 	// Return user profile with email
 	response := models.UserResponse{
@@ -129,6 +116,5 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 		Role:     user.Role,
 	}
 
-	logger.Infof("Profile successfully retrieved for user: %s", user.Username)
 	utils.SuccessResponse(c, http.StatusOK, "Profile retrieved successfully", response)
 }

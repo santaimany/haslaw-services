@@ -65,7 +65,22 @@ func RequireRole(requiredRole models.UserRole) gin.HandlerFunc {
 		}
 
 		userRole := models.UserRole(role.(string))
-		if userRole != requiredRole {
+
+		// Check role hierarchy: SuperAdmin can access Admin routes, but not vice versa
+		hasPermission := false
+
+		switch requiredRole {
+		case models.SuperAdmin:
+			// Only SuperAdmin can access SuperAdmin routes
+			hasPermission = userRole == models.SuperAdmin
+		case models.Admin:
+			// Both Admin and SuperAdmin can access Admin routes
+			hasPermission = userRole == models.Admin || userRole == models.SuperAdmin
+		default:
+			hasPermission = userRole == requiredRole
+		}
+
+		if !hasPermission {
 			utils.ForbiddenResponse(c, "Insufficient permissions")
 			c.Abort()
 			return

@@ -79,7 +79,7 @@ func NewDatabase() (*gorm.DB, error) {
 		NowFunc: func() time.Time {
 			return time.Now().Local()
 		},
-		PrepareStmt:                              true,  // Cache prepared statements
+		PrepareStmt:                              true, // Cache prepared statements
 		DisableForeignKeyConstraintWhenMigrating: false,
 		SkipDefaultTransaction:                   true, // Skip transactions for better performance
 	})
@@ -93,10 +93,10 @@ func NewDatabase() (*gorm.DB, error) {
 	}
 
 	// Optimize connection pool for better performance
-	sqlDB.SetMaxOpenConns(config.Database.MaxConns * 2)      // Increase max connections
-	sqlDB.SetMaxIdleConns(config.Database.MaxIdle * 2)       // Increase idle connections
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)               // Reduce connection lifetime
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)                // Set idle timeout
+	sqlDB.SetMaxOpenConns(config.Database.MaxConns * 2) // Increase max connections
+	sqlDB.SetMaxIdleConns(config.Database.MaxIdle * 2)  // Increase idle connections
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)          // Reduce connection lifetime
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)           // Set idle timeout
 
 	fmt.Println("Database connected successfully!")
 	return db, nil

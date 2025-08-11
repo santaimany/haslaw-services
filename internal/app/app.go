@@ -129,7 +129,7 @@ func (a *App) setupMiddleware() error {
 
 	// Add compression for better response times
 	a.Router.Use(middleware.GzipMiddleware())
-	
+
 	// Core middlewares
 	a.Router.Use(middleware.TraceIDMiddleware())
 	a.Router.Use(middleware.RateLimitMiddleware(100)) // Increase rate limit

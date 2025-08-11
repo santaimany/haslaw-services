@@ -26,7 +26,7 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		gzipWriter := &gzipResponseWriter{
 			ResponseWriter: c.Writer,
-			Writer:        gz,
+			Writer:         gz,
 		}
 		c.Writer = gzipWriter
 
@@ -54,7 +54,7 @@ func CacheMiddleware(maxAge int) gin.HandlerFunc {
 		// Set cache headers for better performance
 		c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 		c.Header("ETag", generateETag(c.Request.URL.Path))
-		
+
 		// Check if client has cached version
 		if match := c.GetHeader("If-None-Match"); match != "" {
 			etag := c.GetHeader("ETag")
@@ -63,7 +63,7 @@ func CacheMiddleware(maxAge int) gin.HandlerFunc {
 				return
 			}
 		}
-		
+
 		c.Next()
 	})
 }

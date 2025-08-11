@@ -39,7 +39,7 @@ func SuccessResponse(c *gin.Context, statusCode int, message string, data interf
 	// Add performance headers
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("X-Frame-Options", "DENY")
-	
+
 	c.JSON(statusCode, Response{
 		Success: true,
 		Message: message,
@@ -51,7 +51,7 @@ func SuccessWithPagination(c *gin.Context, message string, data interface{}, met
 	// Add performance headers
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Cache-Control", "public, max-age=60") // Cache for 1 minute
-	
+
 	c.JSON(http.StatusOK, Response{
 		Success: true,
 		Message: message,

@@ -1,0 +1,21 @@
+# Add these to your existing .gitignore
+
+# Docker volumes
+mysql_data/
+
+# Production environment
+.env.production
+
+# SSL certificates
+ssl/
+*.pem
+*.crt
+*.key
+
+# Backup files
+*.sql
+backup_*
+
+# Logs
+*.log
+logs/

@@ -99,7 +99,7 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, "Profile retrieved successfully", map[string]interface{}{
-		"message": "Profile endpoint - implementation can be expanded",
+		"message": "Get Profile",
 		"user_id": userID,
 	})
 }

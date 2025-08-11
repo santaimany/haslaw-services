@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: haslaw-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: santa123
+      MYSQL_DATABASE: haslaw_db
+      MYSQL_USER: haslaw_user
+      MYSQL_PASSWORD: haslaw_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - haslaw-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Go Application
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-santaimany/haslaw-services}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: haslaw-app
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: haslaw_user
+      DB_PASSWORD: haslaw_password
+      DB_NAME: haslaw_db
+      
+      # JWT Configuration
+      JWT_SECRET: your-very-secure-secret-key-here-change-this-in-production
+      JWT_ACCESS_TOKEN_EXPIRE: 15m
+      JWT_REFRESH_TOKEN_EXPIRE: 168h
+      
+      # Server Configuration
+      PORT: 8080
+      GIN_MODE: release
+      
+      # Security
+      BCRYPT_COST: 12
+      RATE_LIMIT_PER_MINUTE: 60
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - haslaw-network
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: haslaw-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - haslaw-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  haslaw-network:
+    driver: bridge
